@@ -1,39 +1,27 @@
-
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 11/17/2017 03:12:52 PM
-// Design Name: 
-// Module Name: IM
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
-
-// Program or Instuction Memory -- IM1.V
-// Multiplies 3 by 5 and the product is in X4
+// Program or Instuction Memory (IM2.V)
+// Program 2 which tests memory and I/O
+//   I/O ports:
+//      * 0xfff0 = input port from switches
+//                  sw1 = bit 1, sw0 = bit 0
+//      * 0xfffa = output port to the 7 segment display
 //
-// It works like this:
-//    First, the registers are initialized: X2 = 3, X4 = 0
-//    X2 will serve as a counter, while X4
-//    will serve to store the partial product
+// Program 2:
 //
-//    Second, there is a loop, where each pass will decrement
-//    the counter X2 by one, and increment the partial product
-//    X4 by 5.
-//    Note that the loop will pass three times, each time
-//    adding 5 to X4.  At the end of the loop, X4 = 3 x 5.
+// L0:  ADDI  X3,XZR,0xfff0    # X3 = 0xfff, I/0 ports
+//      LD    X5,[X3,#0]       # X5 = inut switch value
+//      ANDI  X5,X5,#1         # Mask all bits except 0 (sw0)
+//      CBZ   X5,Disp0         # if bit = 0 then 
+//                             #   X4 = pattern "0"
+//                             # else X4 = pattern "1"
+//      ADDI  X4,XZR,#0110000  # X4 = bit pattern "1"
+//      CBZ   XZR,Skip       
+// Disp0:
+//      ADDI  X4,XZR,#1111110  # X4 = bit pattern "0"
+// Skip:
+//      ST    X4,[X3,#10]      # 7-segment display = bit pattern
+//      CBZ   XZR,L0           # repeat loop
 //
+
 module IM(idata,iaddr);
 
 output [15:0] idata;
@@ -41,15 +29,22 @@ input  [15:0] iaddr;
 
 reg    [15:0] idata;
 
-always @(iaddr[3:1])
-  case(iaddr[3:1])
-     0: idata={3'd6, 7'd3, 3'd7, 3'd2};      //L0: ADDI  X2,XZR,#3
-     1: idata={3'd0, 3'd7,4'd0,3'd7,3'd4};   //    ADD   X4,XZR,XZR
-     2: idata={3'd5, 7'b1111110,3'd0,3'd2};  //L1: CBZ   X2,L0
-     3: idata={3'd6, 7'd5, 3'd4,3'd4};       //    ADDI  X4,X4,#5
-     4: idata={3'd6, 7'b1111111,3'd2,3'd2};  //    ADDI  X2,X2,#-1
-     5: idata={3'd5, 7'b1111101,3'd0,3'd7};  //    CBZ   XZR,L1
-     default: idata=0;
-  endcase
+always @(iaddr[5:1])
+  case(iaddr[5:1])
 
+// L0:
+	0: idata={3'd6,7'b1110000,3'd7,3'd3}; //ADDI X3,XZR,#0xfff0 
+	1: idata={3'd3,7'd0,3'd3,3'd5};       //LD   X5,[X3,#0] 
+	2: idata={3'd7,7'd1,3'd5,3'd5};       //ANDI X5,X5,#1   
+	3: idata={3'd5,7'd3,3'd0,3'd5};       //CBZ  X5,Disp0
+	4: idata={3'd6,7'b1111001,3'd7,3'd4}; //ADDI X4,XZR,#0110000
+	5: idata={3'd5,7'd2,3'd0,3'd7};       //CBZ  XZR,Skip
+// Disp0:
+	6: idata={3'd6,7'b1000000,3'd7,3'd4}; //ADDI X4,XZR,#1111110 
+// Skip:
+	7: idata={3'd4,7'd10,3'd3,3'd4};      //ST  X4,[X3,#10]
+	8: idata={3'd5,7'b1111000,3'd0,3'd7}; //CBZ XZR,L0
+    default: idata=0;
+  endcase
+  
 endmodule
